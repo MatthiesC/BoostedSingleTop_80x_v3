@@ -118,6 +118,7 @@ namespace uhh2 {
     
     do_scale_variation = (ctx.get("ScaleVariationMuR") == "up" || ctx.get("ScaleVariationMuR") == "down") || (ctx.get("ScaleVariationMuF") == "up" || ctx.get("ScaleVariationMuF") == "down");
     do_top_pt_reweight = ctx.get("b_TopPtReweight") == "true";
+    do_mva = ctx.get("do_mva") == "true";
 
     sys_muon_id      = ctx.get("Systematic_MuonID");
     sys_muon_trigger = ctx.get("Systematic_MuonTrigger");
@@ -239,7 +240,6 @@ namespace uhh2 {
     h_top_eta = ctx.declare_event_output<double>("top_eta");
     h_ht_jets = ctx.declare_event_output<double>("ht_jets");
 
-    do_mva = true;
     if(do_mva && is_ele)      discr_ele_ = new MVADiscriminator("");
     else if(do_mva && is_muo) discr_muo_ = new MVADiscriminator("/nfs/dust/cms/user/matthies/BoostedSingleTop/RunII_80X_v3/Analysis/tmva/weights_muo/TMVAClassification_BDT_50_2.5_0.5.weights.xml");
 

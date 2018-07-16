@@ -398,6 +398,7 @@
 
       <!--<Item Name="b_PDFUncertainties"     Value="true" />-->
       <Item Name="b_TopPtReweight"        Value="true" />
+      <Item Name="do_mva"                 Value="true" />
 
       <Item Name="Systematic_MuonID"      Value="nominal" />
       <Item Name="Systematic_MuonTrigger" Value="nominal" />
