@@ -1,5 +1,5 @@
 obj/HOTVRPileUpUncertainty.o: src/HOTVRPileUpUncertainty.cxx \
- /nfs/dust/cms/user/matthies/CMSSW_8_0_24_patch1/src/UHH2/BstarToTW/include/HOTVRPileUpUncertainty.h \
+ /nfs/dust/cms/user/matthies/CMSSW_8_0_24_patch1/src/UHH2/BoostedSingleTop/include/HOTVRPileUpUncertainty.h \
  /nfs/dust/cms/user/matthies/CMSSW_8_0_24_patch1/src/UHH2/core/include/AnalysisModule.h \
  /nfs/dust/cms/user/matthies/CMSSW_8_0_24_patch1/src/UHH2/core/include/fwd.h \
  /nfs/dust/cms/user/matthies/CMSSW_8_0_24_patch1/src/UHH2/core/include/obj.h \

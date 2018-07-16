@@ -1,4 +1,4 @@
-#include "UHH2/BstarToTW/include/HOTVRScaleFactor.h"
+#include "UHH2/BoostedSingleTop/include/HOTVRScaleFactor.h"
 
 
 using namespace uhh2;
