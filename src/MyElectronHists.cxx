@@ -15,17 +15,18 @@ using namespace std;
 MyElectronHists::MyElectronHists(Context & ctx, const std::string & dname, bool gen_plots): Hists(ctx, dname){
     number      = book<TH1F>("number",      "N(e)",7,-0.5,6.5);
 
-    pt          = book<TH1F>("pt",          "p_{T}(e) [GeV]",           50,0,1000);
-    eta         = book<TH1F>("eta",         "#eta(e)",            50,-3,3);
-    phi         = book<TH1F>("phi",         "#phi(e)",            50,-M_PI,M_PI);
-    isolation   = book<TH1F>("isolation",   "relIso(e)",          50,0,0.2);
-    charge      = book<TH1F>("charge",      "charge(e)",          3,-1.5,1.5);
+    pt          = book<TH1F>("pt",          "electron p_{T} [GeV]",           50,0,1000);
+    eta         = book<TH1F>("eta",         "electron #eta",            50,-3,3);
+    phi         = book<TH1F>("phi",         "electron #phi",            50,-M_PI,M_PI);
+    isolation   = book<TH1F>("isolation",   "electron relIso",          50,0,0.2);
+    charge      = book<TH1F>("charge",      "electron charge",          3,-1.5,1.5);
     ptrel       = book<TH1F>("ptrel",       "p_{T}^{rel}(e,jet)",       40, 0, 200.);
-    deltaRmin   = book<TH1F>("deltaRmin",   "#Delta{}R_{min}(e,jet)",    40, 0, 2.0);
+    deltaRmin   = book<TH1F>("deltaRmin",   "#DeltaR(e,jet)",    40, 0, 2.0);
     deltaRmin_ptrel
                 = book<TH2F>("deltaRmin_ptrel",
-                                            "x=#Delta{}R_{min}(e,jet) y=p_{T}^{rel}(e,jet)",
+                                            "x=#DeltaR(e,jet) y=p_{T}^{rel}(e,jet)",
                                                                         40, 0, 2.0, 40, 0, 200.);
+    deltaPhimin = book<TH1F>("deltaPhimin", "#Delta#phi(e,jet)", 30, 0, M_PI);
     
     if (gen_plots) {
         eff_sub     = book<TH1F>("eff_sub",     "p_{T} [GeV]",                100,0,500);

@@ -29,6 +29,9 @@
 #include "UHH2/BoostedSingleTop/include/BoostedSingleTopHypothesisDiscriminators.h"
 #include "UHH2/BoostedSingleTop/include/AndHists.h"
 #include "UHH2/BoostedSingleTop/include/MatchHists.h"
+#include "UHH2/BoostedSingleTop/include/MVAHists.h"
+
+#include "UHH2/BoostedSingleTop/include/MVADiscriminator.h"
 
 using namespace std;
 using namespace uhh2;
@@ -82,6 +85,7 @@ namespace uhh2 {
     // --- Selections and Histogramms --- //
     std::unique_ptr<AndHists> hist_presel, hist_nbjetcut_loose, hist_nbjetcut_tight; //hist_2bjetcut_tight, hist_1bjetcut_tight; 
     std::unique_ptr<MatchHists> hist_match_tw, hist_match_tt;
+    std::unique_ptr<MVAHists> hist_mva;
 
     // --- Declare new Output for TMVA --- //
     Event::Handle<double> h_weight;
@@ -91,6 +95,16 @@ namespace uhh2 {
     Event::Handle<double> h_deltaphi_bottomtoptag;
     Event::Handle<double> h_wass_pt;
     Event::Handle<double> h_ptbalance;
+    Event::Handle<double> h_lepton_pt;
+    Event::Handle<double> h_lepton_eta;
+    Event::Handle<double> h_deltaphi_leptonnextjet;
+    Event::Handle<double> h_top_pt;
+    Event::Handle<double> h_top_eta;
+    Event::Handle<double> h_ht_jets;
+
+    bool do_mva;
+    MVADiscriminator *discr_ele_, *discr_muo_;
+    Event::Handle<double> h_mvadiscr;
 
   };
 
@@ -209,7 +223,7 @@ namespace uhh2 {
     hist_match_tt.reset(new MatchHists(ctx, "Matching_tt", id_toptag));
 
     // --- Declare new Output for TMVA --- //
-    ctx.undeclare_all_event_output();
+    // ctx.undeclare_all_event_output();
 
     h_weight = ctx.declare_event_output<double>("weight");
     h_n_btags = ctx.declare_event_output<double>("n_btags");
@@ -218,6 +232,20 @@ namespace uhh2 {
     h_deltaphi_bottomtoptag = ctx.declare_event_output<double>("deltaphi_bottomtoptag");
     h_wass_pt = ctx.declare_event_output<double>("wass_pt");
     h_ptbalance = ctx.declare_event_output<double>("ptbalance");
+    h_lepton_pt = ctx.declare_event_output<double>("lepton_pt");
+    h_lepton_eta = ctx.declare_event_output<double>("lepton_eta");
+    h_deltaphi_leptonnextjet = ctx.declare_event_output<double>("deltaphi_leptonnextjet");
+    h_top_pt = ctx.declare_event_output<double>("top_pt");
+    h_top_eta = ctx.declare_event_output<double>("top_eta");
+    h_ht_jets = ctx.declare_event_output<double>("ht_jets");
+
+    do_mva = true;
+    if(do_mva && is_ele)      discr_ele_ = new MVADiscriminator("");
+    else if(do_mva && is_muo) discr_muo_ = new MVADiscriminator("/nfs/dust/cms/user/matthies/BoostedSingleTop/RunII_80X_v3/Analysis/tmva/weights_muo/TMVAClassification_BDT_50_2.5_0.5.weights.xml");
+
+    if(do_mva) h_mvadiscr = ctx.declare_event_output<double>("mvadiscr");
+
+    hist_mva.reset(new MVAHists(ctx, "MVA"));
 
   }
 
@@ -307,9 +335,18 @@ namespace uhh2 {
     TopJet topjet = toptaggedjets.at(0);
     LorentzVector met = (*event.met).v4();
     LorentzVector lepton;
-    if(is_ele) lepton = electrons.at(0).v4();
-    else if(is_muo) lepton = muons.at(0).v4();
-    
+    Jet nextjet;
+    if(is_ele)
+      {
+	lepton = electrons.at(0).v4();
+	nextjet = *nextJet(electrons.at(0), *event.jets);
+      }
+    else if(is_muo)
+      {
+	lepton = muons.at(0).v4();
+	nextjet = *nextJet(muons.at(0), *event.jets);
+      }
+
     //b-tags
     const CSVBTag btag_tight(CSVBTag::WP_TIGHT);
     int n_btags_tight  = 0;
@@ -360,8 +397,39 @@ namespace uhh2 {
     event.set(h_deltaphi_bottomlepton, deltaPhi(lepton, bjet0.v4()));
     event.set(h_deltaphi_bottomtoptag, deltaPhi(topjet, bjet0.v4()));
     event.set(h_wass_pt, Pt_Wass.at(0));
-    event.set(h_ptbalance, (Pt_Wass.at(0) - topjet.v4().pt())/(topjet.v4().pt()));
+    double pt_balance = (Pt_Wass.at(0) - topjet.v4().pt())/(topjet.v4().pt());
+    event.set(h_ptbalance, pt_balance);
+    event.set(h_lepton_pt, lepton.pt());
+    event.set(h_lepton_eta, lepton.eta());
+    double deltaphi_leptonnextjet;
+    if(is_ele) deltaphi_leptonnextjet = deltaPhi(electrons.at(0), nextjet);
+    else if(is_muo) deltaphi_leptonnextjet = deltaPhi(muons.at(0), nextjet);
+    event.set(h_deltaphi_leptonnextjet, deltaphi_leptonnextjet);
+    event.set(h_top_pt, topjet.v4().pt());
+    event.set(h_top_eta, topjet.v4().eta());
+    double ht_jets = 0;
+    for(Jet jet : *event.jets) ht_jets += jet.v4().pt();
+    event.set(h_ht_jets, ht_jets);
 
+    //==================//
+    // TMVA Application //
+    //==================//
+
+    if(do_mva)
+      {
+	double mvaD = -100;
+	if(is_ele)
+	  {
+	    //mvaD = discr_ele_->eval(float(n_btags_tight), float(M_LepNuB.at(0)), float(deltaPhi(lepton, bjet0.v4())), float(deltaPhi(topjet, bjet0.v4())), float(Pt_Wass.at(0)), float(pt_balance), float(lepton.pt()), float(lepton.eta()), float(deltaphi_leptonnextjet), float(topjet.v4().pt()), float(topjet.v4().eta()), float(ht_jets));
+	    mvaD = discr_ele_->eval(float(n_btags_tight), float(deltaPhi(lepton, bjet0.v4())), float(deltaPhi(topjet, bjet0.v4())), float(M_LepNuB.at(0)), float(pt_balance), float(Pt_Wass.at(0)), float(lepton.pt()), float(lepton.eta()), float(deltaphi_leptonnextjet));
+	  }
+	else if(is_muo)
+	  {
+	    mvaD = discr_muo_->eval(float(n_btags_tight), float(deltaPhi(lepton, bjet0.v4())), float(deltaPhi(topjet, bjet0.v4())), float(M_LepNuB.at(0)), float(pt_balance), float(Pt_Wass.at(0)), float(lepton.pt()), float(lepton.eta()), float(deltaphi_leptonnextjet));
+	  }
+	event.set(h_mvadiscr, mvaD); // firstly, set the MVA discriminator value, then ...
+	hist_mva->fill_(event, mvaD, n_btags_tight); // ..., secondly, use it to fill this histogram class
+      }
 
     //======//
     // Done //

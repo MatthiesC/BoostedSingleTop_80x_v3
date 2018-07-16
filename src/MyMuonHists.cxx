@@ -15,14 +15,16 @@ using namespace std;
 MyMuonHists::MyMuonHists(Context & ctx, const std::string & dname, bool gen_plots): Hists(ctx, dname){
     number = book<TH1F>("number","N(#mu)",7,-0.5,6.5);
     
-    pt = book<TH1F>("pt","p_{T}(#mu) [GeV]",50,0,1000);
-    eta = book<TH1F>("eta","#eta(#mu)",50,-3,3);
-    phi = book<TH1F>("phi","#phi(#mu)",50,-M_PI,M_PI);
-    isolation = book<TH1F>("isolation","relIso(#mu)",50,0,0.2);
-    charge = book<TH1F>("charge", "charge(#mu)",3,-1.5,1.5);
+    pt = book<TH1F>("pt","muon p_{T} [GeV]",50,0,1000);
+    eta = book<TH1F>("eta","muon #eta",50,-3,3);
+    phi = book<TH1F>("phi","muon #phi",50,-M_PI,M_PI);
+    isolation = book<TH1F>("isolation","muon relIso",50,0,0.2);
+    charge = book<TH1F>("charge", "muon charge",3,-1.5,1.5);
     ptrel = book<TH1F>("ptrel", "p_{T}^{rel}(#mu,jet)", 40, 0, 200.);
-    deltaRmin = book<TH1F>("deltaRmin", "#Delta{}R_{min}(#mu,jet)", 40, 0, 2.0);
-    deltaRmin_ptrel = book<TH2F>("deltaRmin_ptrel", "x=#Delta{}R_{min}(#mu,jet) y=p_{T}^{rel}(#mu,jet)", 40, 0, 2.0, 40, 0, 200.);
+    deltaRmin = book<TH1F>("deltaRmin", "#DeltaR(#mu,jet)", 40, 0, 2.0);
+    deltaRmin_ptrel = book<TH2F>("deltaRmin_ptrel", "x=#DeltaR(#mu,jet) y=p_{T}^{rel}(#mu,jet)", 40, 0, 2.0, 40, 0, 200.);
+    // next-jet hists by Chris
+    deltaPhimin = book<TH1F>("deltaPhimin", "#Delta#phi(#mu,jet)", 30, 0, M_PI);
 
     if (gen_plots) {
         eff_sub     = book<TH1F>("eff_sub",     "p_{T} [GeV]",                100,0,500);
@@ -58,6 +60,7 @@ void MyMuonHists::fill(const Event & event){
     // buffer values for ptrel and drmin to avoid recomputation:
     vector<float> drmin_buf;
     vector<float> ptrel_buf;
+    vector<float> deltaPhi_buf;
     for(const auto & muon : *event.muons){
         pt->Fill(muon.pt(), w);
         eta->Fill(muon.eta(), w);
@@ -68,11 +71,14 @@ void MyMuonHists::fill(const Event & event){
         if(event.jets){
             auto nj = nextJet(muon, *event.jets);
             auto drmin_val = nj ? deltaR(muon, *nj) : numeric_limits<float>::infinity();
+	    auto deltaPhi_val = nj ? deltaPhi(muon, *nj) : numeric_limits<float>::infinity();
             drmin_buf.push_back(drmin_val);
             ptrel_buf.push_back(pTrel(muon, nj));
+	    deltaPhi_buf.push_back(deltaPhi_val);
             ptrel->Fill(ptrel_buf.back(), w);
             deltaRmin->Fill(drmin_buf.back(), w);
             deltaRmin_ptrel->Fill(drmin_buf.back(), ptrel_buf.back(), w);
+	    deltaPhimin->Fill(deltaPhi_buf.back(), w);
         }
     }
     
